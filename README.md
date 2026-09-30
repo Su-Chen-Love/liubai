@@ -2,99 +2,110 @@
 
 把事情放在这里，把空间留给自己。
 
-四象限安排重要与紧急，时间层级安排今天与以后。支持拖拽、子任务、筛选、完成记录、撤销和任务导出；「收件箱」接收整段输入，由本地 Codex 定期整理。
+四象限安排重要与紧急，时间层级安排今天与以后。「收件箱」接收整段输入，Codex 提出整理结果；明确新增和安全追加可自动保存，其余变化由本人确认。
 
-## 本地使用
+本文说明 **v0.3 的源码能力与使用方式**。代码合并、网站部署、机器凭据配置和真实账号验收是不同步骤；本文不表示线上已更新或定时任务已经验收。
 
-需要 Node.js 22.13 或更新版本。首次下载项目：
+## 云端日常使用
+
+首版继续使用 Sites 与 ChatGPT 登录，只向受邀用户开放。每个人使用自己的 ChatGPT 账号；任务、收件箱、偏好和变更历史按账号分别保存。当前没有留白自有用户名密码，也没有搭档共享空间。分享链接不等于获得访问权限，公开 GitHub 源码不会公开数据库。
+
+云端 D1 是云端日常使用的主数据库。手机和电脑登录同一账号后访问同一份云端数据。本地 Codex 通过 HTTPS 领取已授权账号的整理工作，并将结果写回这份云库；不把本地数据库与云端整库双向同步。网站保存成功与 Agent 整理完成是两件事。
+
+在「空间与数据」中，每个云端账号都需要本人明确同意，才能启用该账号的本机整理与备份。启用意味着站点管理者的 Mac/Codex 可以处理本账号的任务、输入和偏好，并在本机保留备份。可随时撤销后续访问；既有备份不会立即删除，将在在线维护时按 30 天保留期清理。普通用户不能读取其他账号的数据，站点管理者仍有运维层面的数据库权限。
+
+ChatGPT 登录只确认身份，不附带 ChatGPT 历史、日历、邮件或连接器权限。当前网站不内置模型；整理执行者仍是本机 Codex。
+
+## 日期、紧急程度与手机入口
+
+- 「计划日期」用于安排时间；「截止日期」表示真正的完成期限，二者分开保存。
+- 选择「跟随截止日期」的未完成任务，默认在截止前 **3 个自然日**进入紧急象限，包含截止当天；逾期仍为紧急，重要性不变。阈值与时区可在设置中修改，默认时区为 Asia/Shanghai。
+- 「手动：紧急 / 不紧急」优先于自动计算。旧任务保留原有象限和手动安排，不把旧计划日期擅自改成截止日期。
+- 可从手机浏览器「添加到主屏幕」或「安装应用」。这是在线 PWA 入口，需要联网保存；没有离线操作队列，安装图标也不会让手机承担每小时整理。
+- 连接失败时保留当前账号的标签页草稿，不把未确认的请求称为已保存。关闭标签页或清理浏览器数据仍可能丢失未保存草稿。
+
+## 本地开发与独立本地空间
+
+需要 Node.js 22.13 或更新版本。项目主目录为维护者当前使用的 canonical 检出；克隆者在自己的项目目录运行：
 
 ```sh
 git clone https://github.com/Su-Chen-Love/liubai.git
 cd liubai
-```
-
-双击项目中的 **启动留白.command**，或在终端运行：
-
-```sh
-npm ci                 # 首次安装依赖；已经安装时可跳过
+npm ci
 npm run local
 ```
 
-在浏览器打开 **http://127.0.0.1:4178**。保持终端运行；按 Ctrl+C 关闭。下次运行同一命令即可继续。启动时只应用尚未执行的数据库迁移，不会重置任务。页面空闲时每 15 秒检查更新，编辑过程中不会自动改动内容。
+也可双击「启动留白.command」。浏览器地址固定为 **http://127.0.0.1:4178**，保持终端运行，按 Ctrl+C 停止。启动只应用尚未执行的迁移，不重置任务；本地身份仅用于回环开发服务器，不进入生产构建。
 
-本地版只监听这台电脑的回环地址，无需登录。部署到已启用认证的 Sites 后，线上版使用 ChatGPT 登录。**本地与云端目前是两个独立空间，不会自动同步。** 本地登录便利功能仅用于开发服务器，不会打包到线上。
+**本地空间仍是独立数据库。** 其中的数据位于 `.wrangler/state/`，不是缓存，不要删除。迁移项目时应先停服务，保留整个目录。不要将 `npm run local` 暴露到局域网或公网。
 
-## 数据与恢复
-
-- 本地任务保存在项目的 `.wrangler/state/` 中，**这是实际数据，请勿当作缓存删除**。复制或迁移项目时需要保留它。建议先关闭留白，再备份整个目录。
-- 左下角「空间与数据」可导出全部待办和已完成任务为 JSON；Agent 也可以导出。导出不包含已删除任务，目前没有图形化导入功能。
-- 网络失败时可以继续写草稿。草稿暂存于当前浏览器标签页，刷新后可以继续编辑；关闭标签页、清理浏览器数据可能丢失草稿。成功保存前会明确显示「草稿未保存」。
-- 连接报错请先「重新连接」。只有明确提示登录过期时才需要重新登录；本地请确认启动终端仍在运行。
-- 完成、移动、删除后的撤销入口保留 10 秒。并发编辑发生冲突时不会覆盖其他页面的新版本，需保留自己的内容并重新打开最新任务合并。
-
-## 在 Codex 中用 Agent 整理
-
-在 Codex 中打开这个项目，先启动本地留白，再用语音或文字说「把这几件事整理进留白」「列出今天的任务」「把这件事拆成步骤」。Agent 可按 `AGENTS.md` 使用命令行入口，网页和 Agent 共用同一套 API 与本地数据库。
+本地任务 CLI 保持可用，先读取真实 ID 再修改：
 
 ```sh
 npm run tasks -- list
 npm run tasks -- agenda
-npm run tasks -- agenda 2026-10-01
+node scripts/tasks.mjs create < task.json
+node scripts/tasks.mjs update TASK_ID < changes.json
+node scripts/tasks.mjs complete TASK_ID
+node scripts/tasks.mjs export tasks.json
 ```
 
-创建任务将 JSON 通过标准输入传入：
+另有 `reopen ID`、`delete ID`。CLI 在写入前握手当前本地账号，使用任务 revision 检查冲突。`tasks export` 只导出未删除任务（包含已完成），不是完整备份。本地收件箱仍可使用 `node scripts/organizer.mjs queue/plan/resume/checkin`；不能用这些本地命令替代远程流程。
+
+## 云端整理与本机配置
+
+远程 CLI 使用 `node scripts/organizer.mjs remote …`，完整协议见 [ORGANIZER.md](ORGANIZER.md)。机器访问需要平台服务凭据、应用机器凭据，以及每个账号的有效授权；平台服务凭据本身不是用户身份。
+
+维护者通过不回显的标准输入向 `remote init` 提供单个 JSON 对象，字段为 `url`、`sitesToken`、`agentToken`、`backupKey`。其中 `url` 必须是实际站点的 HTTPS origin；`backupKey` 是 32 字节随机密钥的 Base64，省略时初始化生成。配置写入权限为 600 的 `.liubai/remote.json`，不会覆盖已有配置。不要把密钥放进命令参数、聊天、日志或仓库；备份密钥需要另行安全保管，丢失后无法解密备份。
 
 ```sh
-node scripts/tasks.mjs create <<'JSON'
-{"title":"整理这周的研究计划","quadrant":1,"category":"工作","due":"","subtasks":[{"id":"outline","title":"写下三个最重要的问题","done":false}]}
-JSON
+node scripts/organizer.mjs remote help
+node scripts/organizer.mjs remote prune
+node scripts/organizer.mjs remote queue
+node scripts/organizer.mjs remote claim ACCOUNT_KEY
+node scripts/organizer.mjs remote resume JOB_ID
+node scripts/organizer.mjs remote context JOB_ID
+node scripts/organizer.mjs remote plan JOB_ID < plan.json
+node scripts/organizer.mjs remote snapshot JOB_ID
+node scripts/organizer.mjs remote checkin JOB_ID < result.json
 ```
 
-其他命令：`update ID`（从标准输入读取修改 JSON）、`complete ID`、`reopen ID`、`delete ID`、`export [文件路径]`。先 `list` 获取真实任务 ID。导出到文件时不会覆盖同名文件。象限编号：0 现在行动、1 从容计划、2 轻快处理、3 留待以后；分类为工作、生活、成长。日期为 `YYYY-MM-DD` 或空字符串。更新保留未提及字段，并通过 revision 检测冲突。
+CLI 只输出账号标识、计数和文件位置，不输出凭据或原文。每次在线调度先 prune 再 queue；清理只查看受管备份目录和文件时间，不读取快照内容，已撤销账号也会按期限清理。上下文暂存于 `.liubai/jobs/JOB_ID/`；冻结计划保存在 `.liubai/accounts/ACCOUNT_KEY/plans/ENTRY_ID.json`，绑定站点与账号，跨租约、跨 job 重试仍使用同一份计划。context 文件中的 frozenPlans 给出本账号当前输入对应的原计划路径，可直接作为 plan 命令的标准输入。不同账号使用全新 Agent 上下文，根调度只处理不透明标识与计数。快照必须早于 checkin；仅快照确认输入已处理且 checkin 成功后清理相应冻结计划，失败或待处理计划保留。
 
-## 收件箱与定时整理
+每小时整理和快照依赖 **Mac 开机、Codex App 运行、网络和凭据可用**。Mac 离线时云端仍可录入，整理工作留在云端；恢复后重新检查队列。不能保证补跑每个错过的小时，也无法补出离线期间每小时的历史快照。克隆仓库或安装 PWA 不会自动创建定时任务。
 
-把整段想法放进「收件箱」，无需逐条录入。原文先落库；配置 Codex 定时任务后，本地 Codex 可每小时检查新输入，明确的新任务与追加信息可自动保存，其余变化进入「待确认」。你可以采用建议或保留原样，历史记录保留原文和变更结果。任务后来被修改时，旧建议不会覆盖新内容。克隆仓库不会自动创建定时任务。
+## 备份、恢复演练与任务迁移
 
-「我的整理习惯」可编辑工作背景、偏好，以及是否允许自动应用安全变更；它不是隐藏的人格画像。页面显示真实最近检查时间。定时任务在 Codex 的 Scheduled 中管理，电脑和 Codex 需要保持运行；调度不会读取云端收件箱。完整处理协议见 `ORGANIZER.md`。
+页面「导出完整备份」下载本账号的明文 JSON，包含任务、软删除记录、收件箱、偏好、变更与导入映射；文件含私人内容，应妥善保存。机器小时快照使用 AES-256-GCM 加密，写入 `.liubai/backups/`，校验内容与落盘结果后才更新水位。有业务变化才新增快照，心跳和租约不触发快照。每次在线维护严格清理超过 30 天的受管快照，包括最后一份；过期水位一并移除，下次获授权检查会重新落盘。清理不跟随符号链接，不处理 before-upgrade 原库备份目录；电脑离线期间的到期清理由下次在线执行。
 
 ```sh
-node scripts/organizer.mjs queue
-node scripts/organizer.mjs status
+node scripts/backups.mjs local
+node scripts/backups.mjs verify /绝对路径/快照.json.enc
+node scripts/backups.mjs rehearse /绝对路径/快照.json.enc
 ```
 
-## 后续演进
+`local` 通过本地 API 取得完整快照，不直接读取或改写运行数据库。`rehearse` **只在临时目录创建空 SQLite 做恢复演练**，校验固定表、主键、行数和内容；恢复业务数据及导入映射，排除机器授权与 job 租约。它不是生产恢复命令，也不会原地覆盖云库。生产恢复流程及 Sites 是否提供 D1 Time Travel 控制面仍需另行验证。
 
-当前 Agent 入口已经可用，但网页没有内置语言模型，也没有读取 ChatGPT 的历史对话。ChatGPT 登录用于确认身份，并不自动授予对话或日历权限。
+一次性本地任务合并采用「备份 → 生成文件 → 云端登录账号预览 → 本人确认」：
 
-下一步按真实使用反馈逐渐加入：独立账号、搭档空间与受限 Agent 通道，详见 `ARCHITECTURE.md`。任务日期用于分层，不会按期发送提醒，也没有建立操作系统自启动服务。
+```sh
+node scripts/import-tasks.mjs preview ACCOUNT_KEY /绝对路径/该账号云端快照.json.enc
+```
 
-## 分享、登录与数据归属
+脚本生成权限为 600 的任务导入文件，绑定目标账号与稳定来源标识。只包含未删除任务（含已完成）；不自动上传本地收件箱、偏好或历史。在云端「空间与数据」导入并查看预览后再确认。后端按实时任务版本冻结预览；若云端任务在确认前变化，重新运行上述命令生成新批次，再选新文件预览，不能继续使用旧批次。相同来源不重复新增，差异进入待确认，不覆盖现有任务。合并后保留本地原库，不建立持续双向同步。
 
-Sites 的访问范围需要单独配置，分享链接不等于授权；公开源码也不会开放任何人的数据库。网站使用 ChatGPT 登录，没有独立用户名密码登录。如果在 Sites 中授权其他用户，他们使用自己的 ChatGPT 账号，任务、原文、偏好和审核记录按身份隔离存入网站云端 D1 数据库。普通用户不能读取其他用户数据；站点所有者仍拥有数据库管理能力。
+## 开发、发布与后续范围
 
-本地版没有多用户登录，只供这台电脑使用。分享本地链接不会开放远程访问，也不会把本地数据库同步给别人。
-
-## 开发与发布
-
-React 19 / Vinext / Vite，服务端 API 位于 `app/api/tasks/route.ts`；界面位于 `app/page.tsx` 与 `app/globals.css`。D1 表结构与迁移位于 `db/schema.ts`、`drizzle/`。任务验证位于 `lib/task-schema.ts`。
+React 19 / Vinext / Vite；界面在 `app/`、`components/`，API 在 `app/api/`，业务规则在 `lib/`，表结构与追加迁移在 `db/schema.ts`、`drizzle/`。
 
 ```sh
 npm run typecheck
+node --test tests/cli-remote.mjs
 npm run build
 ```
 
-`npm run local` 是个人日常使用入口；`npm start` 只预览构建后的 Worker，不提供本地自动身份。公开仓库的 `.openai/hosting.json` 只声明所需资源，不携带私人站点 ID。已有部署应在忽略的 `.liubai/sites-project.json` 中保存关联信息，并使用已关联的 Sites 源码检出；发布时复用原项目，通过 Sites 的构建与发布流程，必须包含 `dist/.openai/drizzle/` 迁移产物。不要只上传 Worker 文件，否则线上数据库可能缺表。保持既有访问范围；不要提交本地数据、草稿、凭据或备份。
+`npm start` 只预览构建后的 Worker，不提供本地自动身份。发布复用既有 Sites 项目和访问范围，使用当前受支持的 Sites 构建、打包与发布流程，必须携带 D1 迁移产物；不能用只上传 Worker 的临时包代替。若工具或构建链不可用，应保留源码并说明阻塞，不声称已上线。
 
-## 同步源码到 GitHub
+公开仓库为 [Su-Chen-Love/liubai](https://github.com/Su-Chen-Love/liubai)。`origin/main` 的提交推送只更新源码，不同步任务、不运行整理，也不等于发布站点。`.wrangler/`、`.liubai/`、环境变量、日志、凭据和备份不得提交。
 
-在自己的开发副本中提交并推送到 `main`：
-
-```sh
-git status
-git add <本次修改的源码文件>
-git commit -m "Describe the update"
-git push origin main
-```
-
-`main` 用于源码，GitHub 推送不会同步任务、运行定时整理或自动部署网站。`.wrangler/`、`.liubai/`、环境变量、日志和备份必须保持忽略。不要把含个人部署信息的历史分支推送到公开仓库。
+搭档共享、自有密码账号、Dots、云端全天候执行、日历与提醒留待后续验证和设计，当前不承诺这些能力。更多边界见 [ARCHITECTURE.md](ARCHITECTURE.md)。

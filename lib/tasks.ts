@@ -1,4 +1,4 @@
-export type Task = { id:string; title:string; note:string; quadrant:number; category:string; due:string; done:boolean; subtasks:{id:string;title:string;done:boolean}[]; revision:number };
+export type Task = { id:string; title:string; note:string; quadrant:number; category:string; due:string; deadline?:string; urgencyMode?:'auto'|'manualUrgent'|'manualNormal'; done:boolean; subtasks:{id:string;title:string;done:boolean}[]; revision:number };
 export const QUADS = [
  {name:'现在行动',hint:'重要 · 紧急',tone:'coral',tip:'先让最牵挂的事，向前一步。'},
  {name:'从容计划',hint:'重要 · 不紧急',tone:'teal',tip:'为真正重要的事，留出时间。'},

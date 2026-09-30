@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "留白 · 让重要的事有位置",
+  "short_name": "留白",
+  "description": "把事情放在这里，把空间留给自己。",
+  "lang": "zh-CN",
+  "start_url": "/?source=homescreen",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f9f6",
+  "theme_color": "#f3f6f4",
+  "icons": [
+    {"src":"/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
+}

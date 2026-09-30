@@ -3,12 +3,14 @@ import {randomUUID} from 'node:crypto';
 import {writeFileSync} from 'node:fs';
 const [command='help',id,...rest]=process.argv.slice(2);
 const url='http://127.0.0.1:4178/api/tasks';
-async function api(body){const response=await fetch(url,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json',Origin:'http://127.0.0.1:4178'}:undefined,body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(15000)});const data=await response.json();if(!response.ok)throw Error(data.error||'请求失败');return data;}
+let accountKey;
+async function api(body){if(body&&!accountKey)throw Error('本地账号握手未完成');const response=await fetch(url,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json',Origin:'http://127.0.0.1:4178','X-Liubai-Account':accountKey}:undefined,body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(15000)});const data=await response.json();if(!response.ok)throw Error(data.error||'请求失败');return data;}
 async function stdin(){let raw='';for await(const chunk of process.stdin)raw+=chunk;if(raw.length>30000)throw Error('输入过长');return JSON.parse(raw);}
 function day(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 try{
 if(command==='help'){console.log('留白 Agent 入口（先运行 npm run local）\nlist | agenda [YYYY-MM-DD] | create < task.json | update ID < changes.json | complete ID | reopen ID | delete ID | export [file.json]\ncreate/update 从标准输入读取 JSON；象限 0=现在行动 1=从容计划 2=轻快处理 3=留待以后。');process.exit(0);}
 const data=await api();if(data.account?.mode!=='local')throw Error('CLI 只允许操作留白本地空间。');let output;
+accountKey=data.account?.key;
 if(command==='list')output=data.tasks;
 else if(command==='agenda'){const today=id||day();if(!/^\d{4}-\d{2}-\d{2}$/.test(today)||!Number.isFinite(Date.parse(today))||new Date(today).toISOString().slice(0,10)!==today)throw Error('日期格式无效');const tasks=data.tasks.filter(t=>!t.done);output={date:today,overdue:tasks.filter(t=>t.due&&t.due<today),today:tasks.filter(t=>t.due===today),important:tasks.filter(t=>t.quadrant<2),unscheduled:tasks.filter(t=>!t.due)};}
 else if(command==='export'){const backup={format:'liubai-tasks',version:1,exportedAt:new Date().toISOString(),tasks:data.tasks};if(id){writeFileSync(id,JSON.stringify(backup,null,2)+'\n',{flag:'wx',mode:0o600});output={exported:id,count:data.tasks.length};}else output=backup;}
