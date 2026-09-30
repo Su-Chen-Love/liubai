@@ -32,3 +32,162 @@ html[data-liubai-verify=pending] .app-shell{visibility:hidden}.processing-summar
 .account-gate{position:fixed;inset:0;z-index:1000;pointer-events:auto}.app-shell[aria-hidden=true]{visibility:hidden}html[data-liubai-verify=pending] [data-slot=dialog-content],html[data-liubai-verify=pending] [data-slot=dialog-overlay],html[data-liubai-verify=pending] [data-slot=sheet-content],html[data-liubai-verify=pending] [data-slot=sheet-overlay]{visibility:hidden;pointer-events:none}.settings-dialog{overflow-x:hidden;max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px)!important}.settings-dialog input[type=file]{max-width:100%;font-size:12px;overflow:hidden}.settings-dialog .organizer-preferences li{overflow-wrap:anywhere;line-height:1.8}.settings-dialog .organizer-preferences ul{padding-left:20px}.sidebar{padding-top:max(18px,env(safe-area-inset-top))}.sidebar-main nav{padding-bottom:8px}@media(max-width:760px){.sidebar{padding-left:max(10px,env(safe-area-inset-left))}.settings-dialog{top:calc(50% + (env(safe-area-inset-top) - env(safe-area-inset-bottom))/2)!important;width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 28px)!important}.settings-dialog input[type=file]{font-size:14px}}
 
 @media(max-width:760px){.sidebar{width:calc(72px + env(safe-area-inset-left));padding-left:calc(10px + env(safe-area-inset-left))}.workspace{margin-left:calc(72px + env(safe-area-inset-left))}}@media(max-width:430px){.sidebar{width:calc(55px + env(safe-area-inset-left));padding-left:calc(6px + env(safe-area-inset-left));padding-right:6px}.workspace{margin-left:calc(55px + env(safe-area-inset-left))}}
+
+/* Compact working surface: quadrants fill the available desktop canvas. */
+.app-shell { --sidebar-width: 224px; min-height: 100dvh; }
+.sidebar { width: var(--sidebar-width); }
+.workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-left: var(--sidebar-width);
+}
+.app-shell.sidebar-collapsed .sidebar { display: none; }
+.app-shell.sidebar-collapsed .workspace { margin-left: 0; }
+
+.content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 18px 24px 20px;
+}
+.workspace-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 44px;
+  margin-bottom: 16px;
+}
+.workspace-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.workspace-title h1 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 25px;
+  font-weight: 550;
+  line-height: 1.35;
+  letter-spacing: .5px;
+}
+.workspace-title h1 > span { color: #5f9b84; }
+.heading-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+.heading-controls .view-controls { gap: 12px; }
+.sidebar-toggle {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  color: #7c8d82;
+  border-radius: 7px;
+}
+.sidebar-toggle:hover { background: #eff3f0; }
+
+.workspace-toolbar .soft-button { min-height: 36px; white-space: nowrap; }
+.workspace-toolbar .top-status { flex: 0 0 auto; font-size: 12px; max-width: none; }
+.content > .workspace-banner { flex: 0 0 auto; margin-bottom: 12px; }
+.matrix { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding-left: 0; }
+.quadrant { min-width: 0; }
+.quad-header { gap: 8px; flex: 0 0 auto; }
+.quad-title { min-width: 0; }
+.quad-title h2 { min-width: 0; line-height: 1.4; }
+.quad-title .count,
+.quad-header .icon-button { flex: 0 0 auto; }
+.task-stack { min-width: 0; }
+.task-card { min-width: 0; flex: 0 0 auto; }
+.task-meta > span { min-width: 0; }
+.filter-popover { width: min(300px, calc(100vw - 24px)) !important; }
+
+@media (min-width: 761px) {
+  .workspace { height: 100dvh; overflow: hidden; }
+  .content { flex: 1 1 0; min-height: 0; overflow: hidden; }
+  .matrix {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  .quadrant { min-height: 0; padding: 14px 16px 10px; overflow: hidden; }
+  .quadrant .task-stack {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    padding: 1px 2px 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #cad7ce transparent;
+  }
+  .quadrant .task-stack:empty { display: none; }
+  .quad-empty { flex: 1 1 0; min-height: 0; gap: 8px; }
+  .add-inline { flex: 0 0 auto; min-height: 28px; margin-top: 8px; padding-top: 0; }
+  .content > :is(.timeline, .inbox-view, .error-state, .loading-state) {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  .app-shell { --sidebar-width: 190px; }
+  .content { padding: 16px 20px 18px; }
+  .heading-controls,
+  .heading-controls .view-controls { gap: 9px; }
+}
+@media (max-width: 760px) {
+  .app-shell { --sidebar-width: calc(72px + env(safe-area-inset-left)); }
+  .workspace { height: auto; min-height: 100dvh; overflow: visible; }
+  .content {
+    flex: 0 1 auto;
+    min-height: auto;
+    overflow: visible;
+    padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  }
+  .workspace-toolbar { gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .workspace-title { flex-basis: 100%; }
+  .heading-controls { width: 100%; padding-left: 43px; }
+  .heading-controls .top-status { margin-left: auto; display: flex; }
+  .save-status-label { display: none; }
+  .workspace-title { gap: 7px; }
+  .workspace-title h1 { font-size: 22px; }
+  .heading-controls,
+  .heading-controls .view-controls { gap: 8px; }
+
+  .matrix { flex: none; height: auto; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; gap: 12px; }
+  .quadrant { min-height: 210px; padding: 14px 13px 10px; overflow: visible; }
+  .quadrant .task-stack { flex: 0 1 auto; max-height: none; overflow: visible; padding: 1px 0 0; overscroll-behavior: auto; }
+  .quad-empty { min-height: 110px; }
+  .content > :is(.timeline, .inbox-view, .error-state, .loading-state) { flex: none; overflow: visible; }
+}
+@media (max-width: 430px) {
+  .app-shell { --sidebar-width: calc(55px + env(safe-area-inset-left)); }
+  .content { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .workspace-title h1 { font-size: 20px; }
+  .heading-controls,
+  .heading-controls .view-controls { gap: 6px; }
+  .workspace-toolbar .soft-button { gap: 5px; font-size: 13px; }
+}
+
+.task-card.draggable{cursor:grab;touch-action:pan-y}.task-card.draggable .task-title{cursor:grab}.task-card.dragging{cursor:grabbing}.task-card .drag-handle{touch-action:none}.task-card.draggable:not(.dragging):active{cursor:grabbing}.filter-date-hint{font-size:12px;line-height:1.6;color:#8b9b90;margin:-6px 0 16px}.selected-range{font-size:13px}.filter-dot{width:5px;height:5px;background:#538b6b;border-radius:50%}.top-status .save-status-label{width:auto;height:auto;border-radius:0;background:none}.quad-hint{margin-bottom:12px}.toast{left:50%}
+@media(prefers-reduced-motion:reduce){.task-card{animation:none;transition:none}.task-card:hover{transform:none}}
+
+.filter-popover{max-height:min(calc(100dvh - 24px),var(--radix-popover-content-available-height,calc(100dvh - 24px)));overflow-y:auto;overscroll-behavior:contain}
