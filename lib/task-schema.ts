@@ -1,0 +1,3 @@
+import {z} from 'zod';
+export const dateSchema=z.string().refine(s=>s===''||(/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s));
+export const taskSchema=z.object({id:z.string().min(1).max(100),title:z.string().trim().min(1).max(160),note:z.string().max(4000),quadrant:z.number().int().min(0).max(3),category:z.enum(['工作','生活','成长']),due:dateSchema,done:z.boolean(),subtasks:z.array(z.object({id:z.string().min(1).max(100),title:z.string().trim().min(1).max(160),done:z.boolean()})).max(50).refine(items=>new Set(items.map(s=>s.id)).size===items.length),revision:z.number().int().min(0)}).strict();

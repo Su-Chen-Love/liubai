@@ -1,0 +1,17 @@
+import {spawn,spawnSync} from 'node:child_process';
+import {mkdirSync,writeFileSync,existsSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import path from 'node:path';
+const root=fileURLToPath(new URL('..',import.meta.url));process.chdir(root);
+const [command='start']=process.argv.slice(2);
+if(!['start','prepare'].includes(command))throw new Error('Use npm run local or npm run local:prepare');
+if(!existsSync('node_modules/vinext'))throw new Error('请先运行 npm ci 安装项目依赖。');
+mkdirSync('.liubai',{recursive:true});
+writeFileSync('.liubai/wrangler.json',JSON.stringify({name:'liubai-local',compatibility_date:'2026-05-15',d1_databases:[{binding:'DB',database_name:'site-creator-d1',database_id:'00000000-0000-4000-8000-000000000000',migrations_dir:path.join(root,'drizzle')}]},null,2));
+const result=spawnSync(process.execPath,['--import','./scripts/sites-env.mjs','./node_modules/wrangler/bin/wrangler.js','d1','migrations','apply','DB','--local','--config','.liubai/wrangler.json','--persist-to',path.join(root,'.wrangler/state')],{stdio:['ignore','inherit','inherit'],env:{...process.env,CI:'true',WRANGLER_SEND_METRICS:'false'}});
+if(result.status!==0)process.exit(result.status||1);
+if(command==='prepare')process.exit(0);
+console.log('\n留白 · 本地个人空间\n浏览器打开 http://127.0.0.1:4178\n任务保存在此项目的 .wrangler/state 中。按 Ctrl+C 关闭。\n');
+const server=spawn(process.execPath,['scripts/run-framework.mjs','dev','--hostname','127.0.0.1','--port','4178'],{stdio:'inherit',env:{...process.env,LIUBAI_LOCAL:'1'}});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.kill(signal));
+server.on('exit',code=>process.exit(code??0));
