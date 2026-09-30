@@ -4,6 +4,7 @@ import {lstat,unlink} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {backupKey,canonical,digest,privateDir,readPrivateJSON,writePrivateJSON,saveSnapshot,pruneBackups} from './backups.mjs';
+import {configureRemoteNetwork} from './remote-network.mjs';
 
 const projectRoot=fileURLToPath(new URL('..',import.meta.url));
 const idPattern=/^[A-Za-z0-9_-]{1,160}$/;
@@ -41,11 +42,13 @@ async function cleanCompletedPlans(stateDir,folder,lease,source){
  for(const entryId of receipt.processedEntryIds){const planFile=frozenPath(stateDir,lease.accountKey,entryId);try{validateFrozen(await readPrivateJSON(planFile),source,lease.accountKey,entryId);await unlink(planFile);removed++;}catch(error){if(error.code!=='ENOENT')throw error;}}
  await unlink(file);return removed;
 }
-export async function remoteMain(args=process.argv.slice(2),{root=projectRoot,fetchImpl=fetch,input=process.stdin,print=value=>console.log(JSON.stringify(value,null,2))}={}){const [command='help',argument,...rest]=args;const stateDir=path.join(root,'.liubai'),configFile=path.join(stateDir,'remote.json');
+export async function remoteMain(args=process.argv.slice(2),{root=projectRoot,fetchImpl=fetch,input=process.stdin,print=value=>console.log(JSON.stringify(value,null,2)),configureNetwork=configureRemoteNetwork}={}){const [command='help',argument,...rest]=args;const stateDir=path.join(root,'.liubai'),configFile=path.join(stateDir,'remote.json');
  if(command==='help'){print({commands:['init < 安全配置.json','prune','queue','claim <accountKey>','context <jobId>','renew <jobId>','plan <jobId> < 计划.json','resume <jobId>','fail <jobId> < {"result":"简短结果"}','checkin <jobId> < {"result":"简短结果"}','status <jobId>','snapshot <jobId>'],note:'仅HTTPS；账号原文写入权限受限的job文件，不输出正文或凭据。每次在线调度先prune再queue；已领取job可重试原计划；每次完成后checkin释放。'});return;}
  if(command==='prune'){print({ok:true,...await pruneBackups(path.join(stateDir,'backups'))});return;}
  if(command==='init'){const provided=await readJSONInput(input);const config=validateConfig({...provided,backupKey:provided.backupKey||randomBytes(32).toString('base64')});await privateDir(stateDir);try{await lstat(configFile);throw Error('远程配置已存在；为避免丢失备份密钥，不覆盖现有配置');}catch(e){if(e.code!=='ENOENT')throw e;}await writePrivateJSON(configFile,config,{exclusive:true});print({ok:true,configured:true});return;}
- const config=validateConfig(await readPrivateJSON(configFile)),api=createRemoteClient(config,fetchImpl);if(command==='queue'){const queue=await api('queue');if(!Array.isArray(queue.accounts))throw Error('远程账号列表无效');print({accounts:queue.accounts.map(safeAccount),leaseSeconds:queue.leaseSeconds});return;}
+ const config=validateConfig(await readPrivateJSON(configFile)),client=createRemoteClient(config,fetchImpl);let networkReady;
+ const api=async(...params)=>{if(fetchImpl===fetch)await(networkReady??=configureNetwork());return client(...params);};
+ if(command==='queue'){const queue=await api('queue');if(!Array.isArray(queue.accounts))throw Error('远程账号列表无效');print({accounts:queue.accounts.map(safeAccount),leaseSeconds:queue.leaseSeconds});return;}
  if(command==='claim'){
   const accountKey=identifier(argument),requestFile=path.join(stateDir,'jobs',`claim-${digest(accountKey)}.json`);
   for(let attempt=0;attempt<2;attempt++){

@@ -56,6 +56,10 @@ node scripts/tasks.mjs export tasks.json
 
 远程 CLI 使用 `node scripts/organizer.mjs remote …`，完整协议见 [ORGANIZER.md](ORGANIZER.md)。机器访问需要平台服务凭据、应用机器凭据，以及每个账号的有效授权；平台服务凭据本身不是用户身份。
 
+远程网络优先沿用 `HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY` 环境变量，小写同名变量优先。未显式设置 HTTP(S) 代理时，macOS 上会读取已启用的系统 HTTPS 代理，仅采用回环地址与合法端口，不自动采用 SOCKS 或 PAC。设置 `NODE_USE_ENV_PROXY=0` 可关闭这项自动配置；`NO_PROXY=*` 表示全部直连。代理仅应用于本次远程 CLI 进程，不修改系统设置；本地 4178、help、init、prune 不触发代理探测。需要代理时要求 Node 24.14+、25.4+ 或更新主版本，无代理仍兼容 Node 22.13。实现使用 [Node 官方动态代理 API](https://nodejs.org/api/http.html#httpsetglobalproxyfromenvproxyenv)，保留 TLS 验证及禁止携带凭据跟随重定向的限制。
+
+若网络返回 HTML 或无法确认连接，CLI 会报错，最多附带 HTTP 状态和格式合格的 Cloudflare 诊断标识；不会输出页面正文或代理凭据。此时保留云端待办与已有计划，下次重试，不把故障记为「无新增」或「备份成功」。
+
 维护者通过不回显的标准输入向 `remote init` 提供单个 JSON 对象，字段为 `url`、`sitesToken`、`agentToken`、`backupKey`。其中 `url` 必须是实际站点的 HTTPS origin；`backupKey` 是 32 字节随机密钥的 Base64，省略时初始化生成。配置写入权限为 600 的 `.liubai/remote.json`，不会覆盖已有配置。不要把密钥放进命令参数、聊天、日志或仓库；备份密钥需要另行安全保管，丢失后无法解密备份。
 
 ```sh
