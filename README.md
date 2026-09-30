@@ -104,7 +104,7 @@ node --test tests/cli-remote.mjs
 npm run build
 ```
 
-`npm start` 只预览构建后的 Worker，不提供本地自动身份。发布复用既有 Sites 项目和访问范围，使用当前受支持的 Sites 构建、打包与发布流程，必须携带 D1 迁移产物；不能用只上传 Worker 的临时包代替。若工具或构建链不可用，应保留源码并说明阻塞，不声称已上线。
+`npm start` 只预览构建后的 Worker，不提供本地自动身份。发布复用既有 Sites 项目和访问范围，使用当前受支持的 Sites 构建、打包与发布流程，必须携带 D1 迁移产物；不能用只上传 Worker 的临时包代替。打包时保留构建输出的 `dist/.openai/drizzle` 及完整 journal；根 `.openai/hosting.json` 用于项目关联，不能代替构建目录里的迁移元数据。发布成功后仍须回读线上表结构和机器队列，不能仅凭部署回执判断整理已可用。若工具或构建链不可用，应保留源码并说明阻塞，不声称已上线。
 
 公开仓库为 [Su-Chen-Love/liubai](https://github.com/Su-Chen-Love/liubai)。`origin/main` 的提交推送只更新源码，不同步任务、不运行整理，也不等于发布站点。`.wrangler/`、`.liubai/`、环境变量、日志、凭据和备份不得提交。
 
