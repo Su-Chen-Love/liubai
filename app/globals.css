@@ -215,13 +215,13 @@ html[data-liubai-verify=pending] .app-shell{visibility:hidden}.top-status{max-wi
 
 /* Scope density to the matrix; list cards and editor controls keep their spacing. */
 .matrix { gap: 12px; }
-.matrix .quadrant { padding: 10px 12px 8px; }
+.matrix .quadrant { padding: 8px 12px 6px; }
 .matrix .quad-header { min-height: 24px; }
 .matrix .quad-title { gap: 7px; }
 .matrix .quad-title h2 { font-size: 16px; }
 .matrix .quad-icon { width: 21px; height: 21px; }
 .matrix .quad-hint {
-  margin: 2px 0 5px 28px;
+  margin: 2px 0 2px 28px;
   font-size: 11px;
   line-height: 1.35;
   letter-spacing: 0;
@@ -257,7 +257,7 @@ html[data-liubai-verify=pending] .app-shell{visibility:hidden}.top-status{max-wi
 .matrix .task-meta .tag { color: #5f7896; }
 .matrix .task-meta .due-today { color: #906c53; }
 .matrix .add-inline {
-  min-height: 28px;
+  min-height: 26px;
   margin-top: 4px;
   padding: 0;
   font-size: 12px;
