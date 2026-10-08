@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {database} from './database';
 import {accountKey} from './account';
-import {taskSchema} from './task-schema';
+import {taskSchema} from './task-schema.mjs';
 import {normalizedTitle} from './organizer';
 import type {Task} from './tasks';
 const sourceSchema=z.string().min(8).max(128).regex(/^[a-zA-Z0-9_-]+$/);

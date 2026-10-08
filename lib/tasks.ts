@@ -1,9 +1,9 @@
 export type Task = { id:string; title:string; note:string; quadrant:number; category:string; due:string; deadline?:string; urgencyMode?:'auto'|'manualUrgent'|'manualNormal'; done:boolean; subtasks:{id:string;title:string;done:boolean}[]; revision:number };
 export const QUADS = [
- {name:'现在行动',hint:'重要 · 紧急',tone:'coral',tip:'先让最牵挂的事，向前一步。'},
- {name:'从容计划',hint:'重要 · 不紧急',tone:'teal',tip:'为真正重要的事，留出时间。'},
- {name:'轻快处理',hint:'不重要 · 紧急',tone:'blue',tip:'集中处理，或请人帮个忙。'},
- {name:'留待以后',hint:'不重要 · 不紧急',tone:'gray',tip:'不必每件事，都在今天完成。'}
+ {name:'现在行动',hint:'重要 · 紧急',tone:'coral'},
+ {name:'从容计划',hint:'重要 · 不紧急',tone:'teal'},
+ {name:'轻快处理',hint:'不重要 · 紧急',tone:'blue'},
+ {name:'留待以后',hint:'不重要 · 不紧急',tone:'gray'}
 ];
 export const CATEGORIES=['工作','生活','成长'];
 export function dayKey(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}

@@ -1,4 +1,5 @@
 import {database} from './database';
+import {validatePlanInvariants} from './organizer-schema.mjs';
 import {defaultProfile,profileSchema,planSchema,safeAppend,normalizedTitle} from './organizer';
 import type {Profile,RemoteGrant,Entry} from './organizer';
 import type {Task} from './tasks';
@@ -105,16 +106,13 @@ export async function savePlan(owner:string,input:unknown,lease?:LeaseGuard){
  const entry=await db.prepare('SELECT state,plan_token FROM inbox_entries WHERE owner=? AND id=?').bind(owner,plan.entryId).first<{state:string;plan_token:string|null}>();
  if(!entry)throw new OrganizerConflict('输入不存在。','ENTRY_NOT_FOUND');
  if(entry.state!=='pending')return {alreadyProcessed:true,receipt:await planReceipt(owner,plan.entryId,lease)};
- if(new Set(plan.changes.map(c=>c.id)).size!==plan.changes.length||new Set(plan.changes.map(c=>c.task.id)).size!==plan.changes.length)throw new OrganizerConflict('同一批次不能重复修改一项任务。');
+ try{validatePlanInvariants(plan);}catch(error){throw new OrganizerConflict((error as Error).message);}
  const [current,p]=await Promise.all([
   db.prepare('SELECT id,data,revision,deleted FROM tasks WHERE owner=?').bind(owner).all<{id:string;data:string;revision:number;deleted:number}>(),
   db.prepare('SELECT * FROM organizer_profiles WHERE owner=?').bind(owner).first<ProfileRow>(),
  ]);
- const titles=plan.changes.filter(c=>c.kind==='create').map(c=>normalizedTitle(c.task.title));
- if(new Set(titles).size!==titles.length)throw new OrganizerConflict('这份计划含重名新任务，请合并后重试。');
  const profile=p?profileSchema.parse(JSON.parse(p.data)):defaultProfile,token=crypto.randomUUID(),now=new Date().toISOString();
  const prepared=plan.changes.map(c=>{
-  if(c.kind!=='delete'&&c.task.done&&c.task.subtasks.some(s=>!s.done))throw new OrganizerConflict('已完成任务不能包含未完成步骤；请提出恢复为待办的建议。');
   const row=current.results.find(r=>r.id===c.task.id),before=row?{...JSON.parse(row.data),revision:row.revision} as Task:null;
   if(c.kind==='create'&&(row||c.task.revision!==0))throw new OrganizerConflict('新任务标识已存在，或版本号无效。');
   const unavailable=c.kind!=='create'&&(!row||!!row.deleted);
