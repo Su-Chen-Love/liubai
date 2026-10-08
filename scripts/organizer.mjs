@@ -12,7 +12,7 @@ try{
  const tasks=await api('/api/tasks');if(tasks.account?.mode!=='local')throw Error('整理入口仅允许本地空间');const call=body=>api('/api/organizer',body);let result;
  accountKey=tasks.account?.key;
  if(command==='status')result=await call();
- else if(command==='queue'){const d=await call();result={now:new Date().toISOString(),timezone:'Asia/Shanghai',profile:d.profile,entries:d.entries.filter(e=>e.state==='pending').sort((a,b)=>a.created_at.localeCompare(b.created_at)),pendingChanges:d.changes.filter(c=>c.state==='pending'),tasks:tasks.tasks};}
+ else if(command==='queue'){const d=await call();result={now:new Date().toISOString(),timezone:d.profile.timezone,profile:d.profile,entries:d.entries.filter(e=>e.state==='pending').sort((a,b)=>a.created_at.localeCompare(b.created_at)),pendingChanges:d.changes.filter(c=>c.state==='pending'),tasks:tasks.tasks};}
  else if(command==='submit')result=await call({action:'submit',id:arg||crypto.randomUUID(),text:await input()});
  else if(command==='plan')result=await call({action:'plan',...JSON.parse(await input())});
  else if(command==='resume')result=await call({action:'resume'});

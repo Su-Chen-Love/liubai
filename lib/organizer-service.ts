@@ -26,7 +26,8 @@ export async function organizerState(owner:string,local:boolean,full=false,lease
  const db=database(),gate=leaseCondition(lease),bind=[owner,...gate.values];
  const results=await db.batch([
   db.prepare(`SELECT id,body,state,summary,created_at,processed_at FROM inbox_entries WHERE owner=? AND ${gate.sql} ORDER BY CASE WHEN state='pending' THEN 0 ELSE 1 END,CASE WHEN state='pending' THEN created_at ELSE NULL END ASC,created_at DESC,id${full?'':' LIMIT 150'}`).bind(...bind),
-  db.prepare(`SELECT * FROM task_changes WHERE owner=? AND ${gate.sql} ORDER BY CASE WHEN state='pending' THEN 0 ELSE 1 END,created_at,id${full?'':' LIMIT 400'}`).bind(...bind),
+  // Keep every pending decision and the complete results of the displayed inputs.
+  db.prepare(`SELECT * FROM task_changes WHERE owner=? AND ${gate.sql}${full?'':` AND (state='pending' OR entry_id IN (SELECT id FROM inbox_entries WHERE owner=? ORDER BY CASE WHEN state='pending' THEN 0 ELSE 1 END,CASE WHEN state='pending' THEN created_at ELSE NULL END ASC,created_at DESC,id LIMIT 150))`} ORDER BY CASE WHEN state='pending' THEN 0 ELSE 1 END,created_at DESC,id`).bind(...bind,...(full?[]:[owner])),
   db.prepare(`SELECT * FROM organizer_profiles WHERE owner=? AND ${gate.sql}`).bind(...bind),
   db.prepare(`SELECT * FROM organizer_grants WHERE owner=? AND ${gate.sql}`).bind(...bind),
   db.prepare(`SELECT ${gate.sql} AS allowed`).bind(...gate.values),
@@ -116,17 +117,22 @@ export async function savePlan(owner:string,input:unknown,lease?:LeaseGuard){
   if(c.kind!=='delete'&&c.task.done&&c.task.subtasks.some(s=>!s.done))throw new OrganizerConflict('已完成任务不能包含未完成步骤；请提出恢复为待办的建议。');
   const row=current.results.find(r=>r.id===c.task.id),before=row?{...JSON.parse(row.data),revision:row.revision} as Task:null;
   if(c.kind==='create'&&(row||c.task.revision!==0))throw new OrganizerConflict('新任务标识已存在，或版本号无效。');
-  if(c.kind!=='create'&&(!row||row.deleted||row.revision!==c.task.revision))throw new OrganizerConflict('任务已变化，请重新读取后整理。');
+  const unavailable=c.kind!=='create'&&(!row||!!row.deleted);
+  const stale=c.kind!=='create'&&!!row&&row.revision!==c.task.revision;
   const duplicate=c.kind==='create'&&current.results.some(r=>normalizedTitle(JSON.parse(r.data).title)===normalizedTitle(c.task.title));
-  const automatic=profile.autoSafe&&c.automatic&&!duplicate&&(c.kind==='create'&&!c.task.done||c.kind==='update'&&before&&safeAppend(before,c.task));
-  return {...c,task:c.kind==='delete'?before!:c.task,before,automatic:automatic?1:0};
+  const automatic=!unavailable&&!stale&&profile.autoSafe&&c.automatic&&!duplicate&&(c.kind==='create'&&!c.task.done||c.kind==='update'&&before&&safeAppend(before,c.task));
+  // Freeze the original suggestion once. A changed task requires a decision,
+  // and a deleted target becomes history; neither can block the next input.
+  const task=c.kind==='delete'&&before?before:before?{...c.task,revision:before.revision}:c.task;
+  const reason=c.reason+(unavailable?'\n目标任务已删除或不存在，此建议已失效。':stale?'\n任务在整理期间已修改，请核对当前版本与原建议。':'');
+  return {...c,task,before,reason,automatic:automatic?1:0,state:unavailable?'superseded':'pending'};
  });
  // A remote account is processed serially: interrupted safe operations precede
  // the oldest pending input. The conditions also run in the freeze transaction.
  const order=lease?`AND NOT EXISTS (SELECT 1 FROM task_changes WHERE owner=? AND state='pending' AND automatic=1) AND id=(SELECT id FROM inbox_entries WHERE owner=? AND state='pending' ORDER BY created_at,id LIMIT 1)`:'';
  const outcomes=await db.batch([
   db.prepare(`UPDATE inbox_entries SET state='processed',plan_token=?,summary=?,processed_at=? WHERE owner=? AND id=? AND state='pending' AND ${gate.sql} ${order}`).bind(token,plan.summary,now,owner,plan.entryId,...gate.values,...(lease?[owner,owner]:[])),
-  ...prepared.map(c=>db.prepare(`INSERT INTO task_changes (owner,id,entry_id,kind,before_data,after_data,reason,automatic,created_at) SELECT ?,?,?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM inbox_entries WHERE owner=? AND id=? AND plan_token=?) AND ${gate.sql}`).bind(owner,c.id,plan.entryId,c.kind,c.before?JSON.stringify(c.before):null,JSON.stringify(c.task),c.reason,c.automatic,now,owner,plan.entryId,token,...gate.values)),
+  ...prepared.map(c=>db.prepare(`INSERT INTO task_changes (owner,id,entry_id,kind,before_data,after_data,reason,automatic,state,created_at) SELECT ?,?,?,?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM inbox_entries WHERE owner=? AND id=? AND plan_token=?) AND ${gate.sql}`).bind(owner,c.id,plan.entryId,c.kind,c.before?JSON.stringify(c.before):null,JSON.stringify(c.task),c.reason,c.automatic,c.state,now,owner,plan.entryId,token,...gate.values)),
   db.prepare(`INSERT OR IGNORE INTO spaces (owner,initialized) SELECT ?,1 WHERE EXISTS (SELECT 1 FROM inbox_entries WHERE owner=? AND id=? AND plan_token=?) AND ${gate.sql}`).bind(owner,owner,plan.entryId,token,...gate.values),
   db.prepare(`SELECT ${gate.sql} AS allowed`).bind(...gate.values),
  ]);

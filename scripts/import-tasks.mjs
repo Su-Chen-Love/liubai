@@ -2,7 +2,7 @@
 import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {decryptSnapshot,digest,localSnapshot,readPrivateJSON,saveSnapshot,snapshotTables,writePrivateJSON} from './backups.mjs';
+import {ENVELOPE_BYTES,decryptSnapshot,digest,localSnapshot,readPrivateJSON,saveSnapshot,snapshotTables,writePrivateJSON} from './backups.mjs';
 
 export function buildImportRequest(local,cloud,accountKey,{batchId=randomUUID(),now=new Date()}={}){
  if(typeof accountKey!=='string'||!accountKey||cloud.accountKey!==accountKey)throw Error('云端快照与目标账号不匹配');
@@ -23,7 +23,7 @@ async function main(){
  if(command!=='preview'||!accountKey||!cloudFile)throw Error('需要preview、目标accountKey和加密云端快照文件');
  const root=fileURLToPath(new URL('..',import.meta.url));
  const config=await readPrivateJSON(path.join(root,'.liubai/remote.json'));
- const cloud=decryptSnapshot(await readPrivateJSON(path.resolve(cloudFile)),config.backupKey);
+ const cloud=decryptSnapshot(await readPrivateJSON(path.resolve(cloudFile),{maxBytes:ENVELOPE_BYTES}),config.backupKey);
  const local=await localSnapshot();
  const backup=await saveSnapshot(local,{directory:path.join(root,'.liubai/backups'),key:config.backupKey,source:'http://127.0.0.1:4178'});
  const request=buildImportRequest(local,cloud,accountKey);
